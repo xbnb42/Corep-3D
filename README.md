@@ -12,6 +12,7 @@ eval/         frozen-teacher evaluation (clean / noisy / refined)
 repair/       Mechanism A (pose refinement) + Mechanism B (candidate search + null)
 drivers/      multi-scene drivers for the main table, dual mechanism, noise curve, ablations
 ablations/    component ablation, K sensitivity, ICP baseline, per-frame noise, multi-seed
+data/         ScanNet frame export, DINO feature extraction, projection, label remapping
 ```
 
 ## Environment
@@ -23,13 +24,23 @@ ablations/    component ablation, K sensitivity, ICP baseline, per-frame noise, 
 
 ## Data preparation
 
-1. Download ScanNet-v2 scenes and the raw RGB-D frames.
-2. Export color/depth frames and camera poses per scene into
-   `frames/<scene>/{color, depth, pose, intrinsic_color.txt, intrinsic_depth.txt}`.
-3. Extract frozen DINOv2 (ViT-S/14) features from each color frame into `feats_map`
-   (a pickled list of `(frame_name, feature_map, scale)`).
-4. Project the per-pixel features onto points and remap to the 20-class protocol,
-   producing `<scene>_dino384_20cls.npz` with keys `coords`, `colors`, `labels20`, `weight_sum`.
+Each scene goes through four steps (scripts in `data/`):
+
+```bash
+# 1. Export RGB / depth / pose / intrinsics from the .sens file (needs ScanNet/SensReader)
+python data/export_scannet_frames.py <scene> --sens-root <scans> --out-root <frames> --frame-skip 30
+
+# 2. Extract frozen DINOv2 (ViT-S/14) features from the color frames
+python data/extract_dino_only.py <scene> --frames-root <frames> --cache <cache>
+
+# 3. Project per-pixel features onto points (reads the .ply + labels, writes an npz)
+python data/scannet_project_dino_to_points.py <scene> --frames-root <frames> --cache <cache>
+
+# 4. Remap raw 40-class labels to the 20-class protocol
+python data/remap_scannet_labels_v2.py --npz <cache>/<scene>_dino384.npz --out <cache>/<scene>_dino384_20cls.npz
+```
+
+The final `<scene>_dino384_20cls.npz` contains `coords`, `colors`, `labels20`, `weight_sum`.
 
 ## Reproduction
 

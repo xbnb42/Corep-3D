@@ -1,0 +1,9 @@
+torch>=1.10
+torchvision
+numpy
+scikit-learn
+opencv-python
+open3d>=0.10
+# spconv (install the wheel matching your CUDA, e.g.)
+# spconv-cu113  or  spconv-cu118
+# DINOv2 is loaded via torch.hub: facebookresearch/dinov2
